@@ -7,7 +7,7 @@ require_once 'conexao.php';
 
 try {
     $stmt = $pdo->prepare("
-        SELECT id, nome, pontos, DATE_FORMAT(data_registro, '%d/%m/%Y %H:%i') as data 
+        SELECT id, nome, pontos, moedas, DATE_FORMAT(data_registro, '%d/%m/%Y %H:%i') as data 
         FROM ranking 
         ORDER BY pontos DESC, id ASC 
         LIMIT 10

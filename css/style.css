@@ -86,7 +86,7 @@ body {
 }
 
 .mario {
-    width: 150px;
+    width: 300px;
     position: absolute;
     bottom: 0;
     left: 20px;
@@ -135,19 +135,15 @@ body {
     }
 }
 
+.jump {
+    animation: jump-animation 500ms ease-out;
+}
+
 @keyframes jump-animation {
-    0% {
-        bottom: 0;
-    }
-    40% {
-        bottom: 180px;
-    }
-    50% {
-        bottom: 180px;
-    }
-    100% {
-        bottom: 0;
-    }
+    0% { bottom: 0; }
+    40% { bottom: 180px; }
+    50% { bottom: 180px; }
+    100% { bottom: 0; }
 }
 
 @keyframes clouds-animation {
@@ -477,4 +473,32 @@ body {
         font-size: 10px;
         padding: 12px 14px;
     }
+}
+
+.pipe-fast {
+  animation: pipe-animation 0.75s infinite linear !important;
+}
+
+.coin {
+    position: absolute;
+    bottom: 120px;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%; /* Torna a imagem perfeitamente redonda */
+    object-fit: cover;
+    box-shadow: 0 0 10px #ffd700; /* Adiciona um brilho dourado em volta */
+}
+
+/* Animação para a moeda andar junto com a tela */
+.running .coin {
+  animation: coin-animation 3s infinite linear;
+}
+
+@keyframes coin-animation {
+  from {
+    right: -50px;
+  }
+  to {
+    right: 100%;
+  }
 }

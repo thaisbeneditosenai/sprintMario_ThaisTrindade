@@ -6,9 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Elementos do Jogo
     const mario = document.querySelector('.mario');
     const pipe = document.querySelector('.pipe');
+    const coin = document.querySelector('.coin');
     const gameBoard = document.getElementById('game-board');
     const hudPlayerName = document.getElementById('hud-player-name');
     const scoreDisplay = document.getElementById('score-display');
+    const coinsDisplay = document.getElementById('coins-display');
     const jumpTip = document.getElementById('jump-tip');
 
     // Modais e Telas
@@ -19,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const gameoverModal = document.getElementById('gameover-modal');
     const finalScoreValue = document.getElementById('final-score-value');
+    const finalCoinsValue = document.getElementById('final-coins-value');
     const saveStatusMsg = document.getElementById('save-status-msg');
     const rankingBody = document.getElementById('ranking-body');
     const btnRestart = document.getElementById('btn-restart');
@@ -27,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Variáveis de Estado
     let currentPlayer = '';
     let score = 0;
+    let coins = 0;
     let isPlaying = false;
     let gameLoop = null;
     let scoreLoop = null;
@@ -49,9 +53,10 @@ document.addEventListener('DOMContentLoaded', () => {
         resetElements();
 
         isPlaying = true;
-        score = 0;
-        scoreDisplay.textContent = '0';
-        hudPlayerName.textContent = currentPlayer || 'Jogador';
+        coins = 0;
+        if (coinsDisplay) coinsDisplay.textContent = '0';
+        if (scoreDisplay) scoreDisplay.textContent = '0';
+        if (hudPlayerName) hudPlayerName.textContent = currentPlayer || 'Jogador';
 
         // Ativa animações CSS do jogo
         gameBoard.classList.add('running');
@@ -60,22 +65,39 @@ document.addEventListener('DOMContentLoaded', () => {
         scoreLoop = setInterval(() => {
             if (isPlaying) {
                 score += 1;
-                scoreDisplay.textContent = score;
+                if (scoreDisplay) scoreDisplay.textContent = score;
+
+                if (score >= 35) {
+                    pipe.style.animation = 'pipe-animation 2s infinite linear'; 
+                    if (coin) {
+                        coin.style.animation = 'coin-animation 3s infinite linear';
+                        coin.style.display = 'block';
+                    }
+                }
             }
         }, 100);
 
-        // Loop de colisão
-        gameLoop = setInterval(checkCollision, 10);
+        // Loop de colisão e verificação de moedas
+        gameLoop = setInterval(() => {
+            checkCollision();
+            checkCoin();
+        }, 10);
     }
-
 
     function resetElements() {
         // Reseta cano
         pipe.style.animation = '';
+        pipe.style.animationDuration = '';
         pipe.style.left = '';
 
+        // Reseta Moeda
+        if (coin) {
+            coin.style.animation = '';
+            coin.style.display = 'block';
+        }
+
         // Reseta Mario
-        mario.src = 'assets/mario.gif';
+        mario.src = 'assets/garota.gif';
         mario.style.animation = '';
         mario.style.bottom = '0px';
         mario.style.width = '';
@@ -109,9 +131,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const marioPosition = +window.getComputedStyle(mario).bottom.replace('px', '');
 
         // Tolerância de colisão: quando o cano está na faixa de contato com o Mario
-        if (pipePosition <= 120 && pipePosition > 0 && marioPosition < 80) {
+        if (pipePosition <= 150 && pipePosition > 0 && marioPosition < 80) {
             triggerGameOver(pipePosition, marioPosition);
         }
+    }
+
+    function checkCoin() {
+        if (!isPlaying || !coin) return;
+
+        const coinPosition = coin.offsetLeft;
+        const marioPosition = +window.getComputedStyle(mario).bottom.replace('px', '');
+
+        // Se o Mario pular e encostar na moeda visível
+        if (coinPosition <= 120 && coinPosition > 50 && marioPosition > 60 && coin.style.display !== 'none') {
+            collectCoin();
+        }
+    }
+
+    function collectCoin() {
+        coins++;
+        if (coinsDisplay) coinsDisplay.textContent = coins;
+
+        // Esconde a moeda para não pontuar infinitamente
+        coin.style.display = 'none';
+
+        // Reaparece após 2 segundos
+        setTimeout(() => {
+            if (isPlaying && coin) {
+                coin.style.display = 'block';
+            }
+        }, 2000);
     }
 
     function triggerGameOver(pipePosition, marioPosition) {
@@ -119,12 +168,14 @@ document.addEventListener('DOMContentLoaded', () => {
         clearInterval(gameLoop);
         clearInterval(scoreLoop);
 
-        
         gameBoard.classList.remove('running');
 
-        
         pipe.style.animation = 'none';
         pipe.style.left = `${pipePosition}px`;
+
+        if (coin) {
+            coin.style.animation = 'none';
+        }
 
         // Congela o Mario na altura exata e muda para a imagem de Game Over
         mario.style.animation = 'none';
@@ -134,7 +185,9 @@ document.addEventListener('DOMContentLoaded', () => {
         mario.style.marginLeft = '50px';
 
         // Atualiza modal de Game Over
-        finalScoreValue.textContent = score;
+        if (finalScoreValue) finalScoreValue.textContent = score;
+        if (finalCoinsValue) finalCoinsValue.textContent = coins;
+        
         saveStatusMsg.textContent = 'Salvando pontuação no banco...';
         saveStatusMsg.style.color = '#ffcc00';
 
@@ -142,11 +195,10 @@ document.addEventListener('DOMContentLoaded', () => {
         gameoverModal.classList.add('active');
 
         // Salva a pontuação no banco MySQL via PHP
-        saveScore(currentPlayer, score);
+        saveScore(currentPlayer, score, coins);
     }
 
-
-    function saveScore(playerName, finalScore) {
+    function saveScore(playerName, finalScore, finalCoins) {
         fetch('salvar_ranking.php', {
             method: 'POST',
             headers: {
@@ -154,12 +206,13 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             body: JSON.stringify({
                 nome: playerName,
-                pontos: finalScore
+                pontos: finalScore,
+                moedas: finalCoins
             })
         })
         .then(res => res.json())
         .then(data => {
-            if (data.status === 'success') {
+            if (data.status === 'success' || data.success) {
                 saveStatusMsg.textContent = 'Pontuação registrada no banco!';
                 saveStatusMsg.style.color = '#10b981';
                 if (data.ranking) {
@@ -184,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('obter_ranking.php')
             .then(res => res.json())
             .then(data => {
-                if (data.status === 'success' && data.ranking) {
+                if ((data.status === 'success' || data.success) && data.ranking) {
                     renderRanking(data.ranking);
                 }
             })
@@ -199,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         rankingBody.innerHTML = '';
 
         if (!list || list.length === 0) {
-            rankingBody.innerHTML = '<tr><td colspan="3" class="loading-cell">Nenhuma pontuação gravada ainda. Jogue para ser o 1º!</td></tr>';
+            rankingBody.innerHTML = '<tr><td colspan="4" class="loading-cell">Nenhuma pontuação gravada ainda. Jogue para ser o 1º!</td></tr>';
             return;
         }
 
@@ -219,10 +272,13 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (index === 1) medal = '🥈 2º';
             else if (index === 2) medal = '🥉 3º';
 
+            const itemMoedas = item.moedas !== undefined ? item.moedas : 0;
+
             tr.innerHTML = `
                 <td class="ranking-pos">${medal}</td>
                 <td><strong>${escapeHtml(item.nome)}</strong></td>
                 <td>${parseInt(item.pontos, 10)} pts</td>
+                <td>🪙 ${parseInt(itemMoedas, 10)}</td>
             `;
 
             rankingBody.appendChild(tr);
@@ -263,7 +319,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Botão "VER RANKING" na tela inicial
     btnViewRanking.addEventListener('click', () => {
         fetchRanking();
-        finalScoreValue.textContent = '---';
+        if (finalScoreValue) finalScoreValue.textContent = '---';
+        if (finalCoinsValue) finalCoinsValue.textContent = '---';
         saveStatusMsg.textContent = '';
         startModal.classList.remove('active');
         gameoverModal.classList.add('active');
@@ -280,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 4. Botão "TROCAR JOGADOR" no Game Over
+    // Botão "TROCAR JOGADOR" no Game Over
     btnChangePlayer.addEventListener('click', () => {
         gameoverModal.classList.remove('active');
         resetElements();
@@ -289,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         playerInput.focus();
     });
 
-    // 5. Controle do Pulo por Teclado (Espaço ou Seta para Cima)
+    // Controle do Pulo por Teclado (Espaço ou Seta para Cima)
     document.addEventListener('keydown', (e) => {
         if (e.code === 'Space' || e.key === ' ' || e.code === 'ArrowUp') {
             if (isPlaying) {

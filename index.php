@@ -1,4 +1,3 @@
-//Código Correto
 <?php
 
 require_once 'conexao.php';
@@ -7,7 +6,7 @@ require_once 'conexao.php';
 $rankingInicial = [];
 try {
     $stmt = $pdo->query("
-        SELECT id, nome, pontos, DATE_FORMAT(data_registro, '%d/%m/%Y %H:%i') as data 
+        SELECT id, nome, pontos, moedas, DATE_FORMAT(data_registro, '%d/%m/%Y %H:%i') as data 
         FROM ranking 
         ORDER BY pontos DESC, id ASC 
         LIMIT 10
@@ -41,13 +40,18 @@ try {
                 <span class="label">PONTOS:</span>
                 <span class="value" id="score-display">0</span>
             </div>
+            <div class="coins-info">
+                <span class="label">MOEDAS:</span>
+                <span class="value" id="coins-display">0</span>
+            </div>
         </header>
 
         
         <main class="game-board" id="game-board">
             <img src="assets/clouds.png" class="clouds" alt="Nuvens">
-            <img src="assets/mario.gif" class="mario" alt="Mario">
+            <img src="assets/garota.gif" class="mario" alt="Mario">
             <img src="assets/pipe.png" class="pipe" alt="Cano">
+            <img src="assets/coin.png" class="coin" alt="Moeda">
             <span class="jump-tip" id="jump-tip">Pressione ESPAÇO ou clique para pular</span>
         </main>
     </div>
@@ -94,6 +98,7 @@ try {
                 <div class="final-score-box">
                     <div class="final-score-label">SUA PONTUAÇÃO</div>
                     <div class="final-score-num" id="final-score-value">0</div>
+                    <div class="final-coins-label">MOEDAS COLETADAS: <span id="final-coins-value">0</span></div>
                     <div class="save-status" id="save-status-msg"></div>
                 </div>
             </div>
@@ -108,6 +113,7 @@ try {
                                 <th>POS</th>
                                 <th>JOGADOR</th>
                                 <th>PONTUAÇÃO</th>
+                                <th>MOEDAS</th>
                             </tr>
                         </thead>
                         <tbody id="ranking-body">
@@ -119,11 +125,12 @@ try {
                                         </td>
                                         <td><strong><?= htmlspecialchars($row['nome']) ?></strong></td>
                                         <td><?= (int)$row['pontos'] ?> pts</td>
+                                        <td>🪙 <?= (int)($row['moedas'] ?? 0) ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="3" class="loading-cell">Nenhuma pontuação gravada ainda. Jogue para ser o 1º!</td>
+                                    <td colspan="4" class="loading-cell">Nenhuma pontuação gravada ainda. Jogue para ser o 1º!</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>

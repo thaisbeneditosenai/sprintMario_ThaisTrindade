@@ -1,59 +1,47 @@
 <?php
-/**
- * Endpoint para salvar a pontuação do jogador no banco de dados
- */
-header('Content-Type: application/json; charset=utf-8');
 require_once 'conexao.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['status' => 'error', 'message' => 'Método não permitido']);
-    exit;
-}
+// Lê os dados enviados em formato JSON pelo JavaScript
+$data = json_decode(file_get_contents('php://input'), true);
 
-// Aceita requisições tanto em formato JSON quanto form-data / POST padrão
-$input = json_decode(file_get_contents('php://input'), true);
-if (!$input) {
-    $input = $_POST;
-}
+if (!empty($data['nome']) && isset($data['pontos'])) {
+    $nome = trim($data['nome']);
+    $pontos = (int)$data['pontos'];
+    // Garante que pega o valor de moedas enviado (se não enviado, assume 0)
+    $moedas = isset($data['moedas']) ? (int)$data['moedas'] : 0;
 
-$nome = isset($input['nome']) ? trim($input['nome']) : '';
-$pontos = isset($input['pontos']) ? (int)$input['pontos'] : 0;
+    try {
+        // 1. Grava no banco de dados incluindo a coluna 'moedas'
+        $stmt = $pdo->prepare("
+            INSERT INTO ranking (nome, pontos, moedas, data_registro) 
+            VALUES (?, ?, ?, NOW())
+        ");
+        $stmt->execute([$nome, $pontos, $moedas]);
 
-if (empty($nome)) {
-    $nome = 'Jogador Anônimo';
-}
+        // 2. Procura o TOP 10 atualizado trazendo também a coluna 'moedas'
+        $stmtRanking = $pdo->query("
+            SELECT id, nome, pontos, moedas, DATE_FORMAT(data_registro, '%d/%m/%Y %H:%i') as data 
+            FROM ranking 
+            ORDER BY pontos DESC, id ASC 
+            LIMIT 10
+        ");
+        $ranking = $stmtRanking->fetchAll(PDO::FETCH_ASSOC);
 
-// Limita tamanho do nome a 40 caracteres
-$nome = mb_substr($nome, 0, 40);
-
-try {
-    // Insere o registro no banco com Prepared Statement
-    $stmt = $pdo->prepare("INSERT INTO ranking (nome, pontos) VALUES (:nome, :pontos)");
-    $stmt->execute([
-        ':nome' => $nome,
-        ':pontos' => $pontos
-    ]);
-
-    // Busca os 10 melhores colocados atualizados
-    $stmtRanking = $pdo->prepare("
-        SELECT id, nome, pontos, DATE_FORMAT(data_registro, '%d/%m/%Y %H:%i') as data 
-        FROM ranking 
-        ORDER BY pontos DESC, id ASC 
-        LIMIT 10
-    ");
-    $stmtRanking->execute();
-    $ranking = $stmtRanking->fetchAll();
-
-    echo json_encode([
-        'status' => 'success',
-        'message' => 'Pontuação registrada com sucesso!',
-        'ranking' => $ranking
-    ]);
-} catch (PDOException $e) {
-    http_response_code(500);
+        // 3. Retorna a resposta JSON esperada pelo JavaScript
+        echo json_encode([
+            'status' => 'success',
+            'ranking' => $ranking
+        ]);
+    } catch (Exception $e) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Erro ao salvar no banco de dados.'
+        ]);
+    }
+} else {
     echo json_encode([
         'status' => 'error',
-        'message' => 'Erro ao salvar no banco: ' . $e->getMessage()
+        'message' => 'Dados inválidos fornecidos.'
     ]);
 }
+?>
