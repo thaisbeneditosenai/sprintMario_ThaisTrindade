@@ -1,8 +1,8 @@
 /**
- * Mario Jump - Lógica do Jogo (Corrigida e Otimizada)
+ * Garota Jump - Lógica Completa (Física, Sons 8-Bit, Banco de Dados & Loja de Skins)
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // Configurações de Balanço
+    // Configurações e Física
     const PIPE_SPEED_BASE = 450;   
     const PIPE_SPEED_MAX = 900;    
     const PIPE_SPEED_GAIN = 2;   
@@ -35,6 +35,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnRestart = document.getElementById('btn-restart');
     const btnChangePlayer = document.getElementById('btn-change-player');
 
+    // Elementos da Loja
+    const shopModal = document.getElementById('shop-modal');
+    const btnShop = document.getElementById('btn-shop');
+    const btnCloseShop = document.getElementById('btn-close-shop');
+    const shopCoinsDisplay = document.getElementById('shop-coins-display');
+    const btnBuyRosa = document.getElementById('btn-buy-rosa');
+    const btnSkinGarota = document.getElementById('btn-skin-garota');
+
     // Estados do Jogo
     let currentPlayer = '';
     let score = 0;
@@ -44,36 +52,124 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastTime = 0;
     let scoreAccumulator = 0;
 
+    // Carteira e Skins
+    let totalCoins = parseInt(localStorage.getItem('garota_jump_coins') || '0', 10);
+    let unlockedSkins = JSON.parse(localStorage.getItem('garota_jump_skins') || '["garota"]');
+    let currentSkin = localStorage.getItem('garota_jump_current_skin') || 'garota';
+
     // Posições
-    let boardWidth = gameBoard.clientWidth;
+    let boardWidth = gameBoard ? gameBoard.clientWidth : 800;
     let pipeX = boardWidth;
     let cloudX = boardWidth;
     let coinX = boardWidth + 300;
     let coinY = 60;
     let coinVisible = true;
 
-    // Física do Mario
+    // Física
     let marioY = 0;        
     let marioVelocityY = 0;
     let isJumping = false;
 
-    // Pré-carrega a imagem de Game Over
+    // Pre-load
     new Image().src = 'assets/game-over.png';
 
     const savedName = localStorage.getItem('garota_jump_player');
     if (savedName && playerInput) playerInput.value = savedName;
 
     window.addEventListener('resize', () => {
-        boardWidth = gameBoard.clientWidth;
+        if (gameBoard) boardWidth = gameBoard.clientWidth;
     });
 
+    // ====== SINTETIZADOR DE ÁUDIO 8-BIT ======
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playTone(freq, type, duration) {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playSoundJump() {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.15);
+    }
+
+    function playSoundCoin() {
+        playTone(987.77, 'sine', 0.08);
+        setTimeout(() => playTone(1318.51, 'sine', 0.2), 80);
+    }
+
+    function playSoundGameOver() {
+        playTone(300, 'sawtooth', 0.15);
+        setTimeout(() => playTone(220, 'sawtooth', 0.2), 150);
+        setTimeout(() => playTone(150, 'sawtooth', 0.3), 350);
+    }
+
+    // ====== FUNÇÕES AUXILIARES ======
+    function hideAllModals() {
+        if (startModal) { startModal.classList.remove('active'); startModal.style.display = 'none'; }
+        if (gameoverModal) { gameoverModal.classList.remove('active'); gameoverModal.style.display = 'none'; }
+        if (shopModal) { shopModal.classList.remove('active'); shopModal.style.display = 'none'; }
+    }
+
+    function showStartModal() {
+        hideAllModals();
+        if (startModal) { startModal.style.display = 'flex'; startModal.classList.add('active'); }
+    }
+
+    function showShopModal() {
+        hideAllModals();
+        updateShopUI();
+        if (shopModal) { shopModal.style.display = 'flex'; shopModal.classList.add('active'); }
+    }
+
+    function showGameOverModal() {
+        hideAllModals();
+        if (gameoverModal) { gameoverModal.style.display = 'flex'; gameoverModal.classList.add('active'); }
+    }
+
     function setTransform(el, x, y = 0) {
-        el.style.transform = `translate3d(${x}px, ${-y}px, 0)`;
+        if (el) el.style.transform = `translate3d(${x}px, ${-y}px, 0)`;
+    }
+
+    function applySkin(skinName) {
+        if (!mario) return;
+        mario.classList.remove('skin-filter-rosa');
+        if (skinName === 'rosa') {
+            mario.classList.add('skin-filter-rosa');
+        }
     }
 
     function resetGame() {
-        boardWidth = gameBoard.clientWidth;
-        pipeX = boardWidth + 200; // Nascimento fora da tela
+        boardWidth = gameBoard ? gameBoard.clientWidth : 800;
+        pipeX = boardWidth + 200;
         cloudX = boardWidth;
         respawnCoin();
 
@@ -85,38 +181,35 @@ document.addEventListener('DOMContentLoaded', () => {
         setTransform(clouds, cloudX, 0);
         setTransform(mario, 0, 0);
 
-        mario.src = 'assets/garota.gif';
-        mario.style.width = '';
-        mario.style.left = '';
-        mario.style.bottom = '';
+        if (mario) {
+            mario.src = 'assets/garota.gif';
+            applySkin(currentSkin);
+            mario.style.width = '';
+            mario.style.left = '';
+            mario.style.bottom = '';
+        }
 
         if (jumpTip) jumpTip.style.opacity = '1';
     }
 
     function respawnCoin() {
-    coinX = boardWidth + Math.random() * 200 + 300;
-    coinY = 40 + Math.random() * 40; 
-    coinVisible = true;
-    coin.style.display = 'block';
-    setTransform(coin, coinX, coinY);
-}
+        coinX = boardWidth + Math.random() * 200 + 300;
+        coinY = 40 + Math.random() * 40;
+        coinVisible = true;
+        if (coin) {
+            coin.style.display = 'block';
+            setTransform(coin, coinX, coinY);
+        }
+    }
 
+    // ====== LOOP E LÓGICA DO JOGO ======
     function startGame() {
         if (rafId) {
             cancelAnimationFrame(rafId);
             rafId = null;
         }
 
-        // Fecha Modais
-        if (startModal) {
-            startModal.classList.remove('active');
-            startModal.style.display = 'none';
-        }
-        if (gameoverModal) {
-            gameoverModal.classList.remove('active');
-            gameoverModal.style.display = 'none';
-        }
-
+        hideAllModals();
         resetGame();
 
         score = 0;
@@ -136,26 +229,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isPlaying) return;
 
         if (!lastTime) lastTime = now;
-
         let dt = (now - lastTime) / 1000;
-        if (dt > 0.03 || dt < 0) {
-            dt = 0.016; 
-        }
+        if (dt > 0.03 || dt < 0) dt = 0.016; 
         lastTime = now;
 
-        // 1. Atualização do Score
+        // Score
         scoreAccumulator += dt * 1000;
         if (scoreAccumulator >= 100) {
             const added = Math.floor(scoreAccumulator / 100);
             score += added;
             scoreAccumulator -= added * 100;
-            scoreDisplay.textContent = score;
+            if (scoreDisplay) scoreDisplay.textContent = score;
         }
 
-        // 2. Velocidade atual
         const currentSpeed = Math.min(PIPE_SPEED_MAX, PIPE_SPEED_BASE + score * PIPE_SPEED_GAIN);
 
-        // 3. Movimentação dos Obstáculos
+        // Cano & Nuvens
         pipeX -= currentSpeed * dt;
         if (pipeX < -100) pipeX = boardWidth;
         setTransform(pipe, pipeX, 0);
@@ -164,17 +253,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cloudX < -600) cloudX = boardWidth;
         setTransform(clouds, cloudX, 0);
 
-        // 4. Movimentação da Moeda
+        // Moeda
         if (coinVisible) {
             coinX -= currentSpeed * dt;
-            if (coinX < -50) {
-                respawnCoin();
-            } else {
-                setTransform(coin, coinX, coinY);
-            }
+            if (coinX < -50) respawnCoin();
+            else setTransform(coin, coinX, coinY);
         }
 
-        // 5. Física do Pulo
+        // Pulo
         if (isJumping || marioY > 0) {
             marioVelocityY += GRAVITY * dt;
             marioY -= marioVelocityY * dt;
@@ -187,29 +273,31 @@ document.addEventListener('DOMContentLoaded', () => {
             setTransform(mario, 0, marioY);
         }
 
-        // 6. Detecção de Colisão Precisa
-        const marioRect = mario.getBoundingClientRect();
-        const pipeRect = pipe.getBoundingClientRect();
+        // Colisão Cano
+        if (mario && pipe) {
+            const marioRect = mario.getBoundingClientRect();
+            const pipeRect = pipe.getBoundingClientRect();
 
-        // Só testa colisão se o cano já entrou na área útil do tabuleiro
-        if (pipeRect.left < boardWidth) {
-            const paddingX = 25; 
-            const paddingTop = 20;
+            if (pipeRect.left < boardWidth) {
+                const paddingX = 25; 
+                const paddingTop = 20;
 
-            const colidiuCano = (
-                marioRect.right - paddingX > pipeRect.left &&
-                marioRect.left + paddingX < pipeRect.right &&
-                marioRect.bottom > pipeRect.top + paddingTop
-            );
+                const colidiuCano = (
+                    marioRect.right - paddingX > pipeRect.left &&
+                    marioRect.left + paddingX < pipeRect.right &&
+                    marioRect.bottom > pipeRect.top + paddingTop
+                );
 
-            if (colidiuCano) {
-                triggerGameOver();
-                return;
+                if (colidiuCano) {
+                    triggerGameOver();
+                    return;
+                }
             }
         }
 
-        // 7. Coleta de Moeda
-        if (coinVisible) {
+        // Coleta Moeda
+        if (coinVisible && mario && coin) {
+            const marioRect = mario.getBoundingClientRect();
             const coinRect = coin.getBoundingClientRect();
             const colidiuMoeda = (
                 marioRect.right > coinRect.left &&
@@ -218,9 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 marioRect.top < coinRect.bottom
             );
 
-            if (colidiuMoeda) {
-                collectCoin();
-            }
+            if (colidiuMoeda) collectCoin();
         }
 
         rafId = requestAnimationFrame(loop);
@@ -230,23 +316,31 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isPlaying || isJumping) return;
         isJumping = true;
         marioVelocityY = JUMP_IMPULSE;
+        playSoundJump();
         if (jumpTip) jumpTip.style.opacity = '0';
     }
 
     function collectCoin() {
         coins++;
+        totalCoins++;
+        localStorage.setItem('garota_jump_coins', totalCoins);
+        playSoundCoin();
+
         if (coinsDisplay) coinsDisplay.textContent = coins;
         coinVisible = false;
-        coin.style.display = 'none';
+        if (coin) coin.style.display = 'none';
         setTimeout(respawnCoin, 2000);
     }
 
     function triggerGameOver() {
         isPlaying = false;
         if (rafId) cancelAnimationFrame(rafId);
+        playSoundGameOver();
 
-        mario.src = 'assets/game-over.png';
-        mario.style.width = '75px';
+        if (mario) {
+            mario.src = 'assets/game-over.png';
+            mario.style.width = '75px';
+        }
 
         if (finalScoreValue) finalScoreValue.textContent = score;
         if (finalCoinsValue) finalCoinsValue.textContent = coins;
@@ -256,14 +350,11 @@ document.addEventListener('DOMContentLoaded', () => {
             saveStatusMsg.style.color = '#ffcc00';
         }
 
-        if (gameoverModal) {
-            gameoverModal.style.display = 'flex';
-            gameoverModal.classList.add('active');
-        }
-
+        showGameOverModal();
         saveScore(currentPlayer, score, coins);
     }
 
+    // ====== BANCO DE DADOS & RANKING ======
     function saveScore(playerName, finalScore, finalCoins) {
         fetch('salvar_ranking.php', {
             method: 'POST',
@@ -349,89 +440,157 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/'/g, '&#039;');
     }
 
-    // ====== EVENTOS ======
+    // ====== LÓGICA DA LOJA DE SKINS ======
+    function updateShopUI() {
+        if (shopCoinsDisplay) shopCoinsDisplay.textContent = totalCoins;
 
+        if (btnSkinGarota) {
+            if (currentSkin === 'garota') {
+                btnSkinGarota.textContent = 'EQUIPADO';
+                btnSkinGarota.disabled = true;
+                btnSkinGarota.className = 'btn btn-skin';
+            } else {
+                btnSkinGarota.textContent = 'EQUIPAR';
+                btnSkinGarota.disabled = false;
+                btnSkinGarota.className = 'btn btn-secondary btn-skin';
+            }
+        }
+
+        if (btnBuyRosa) {
+            if (unlockedSkins.includes('rosa')) {
+                if (currentSkin === 'rosa') {
+                    btnBuyRosa.textContent = 'EQUIPADO';
+                    btnBuyRosa.disabled = true;
+                    btnBuyRosa.className = 'btn btn-skin';
+                } else {
+                    btnBuyRosa.textContent = 'EQUIPAR';
+                    btnBuyRosa.disabled = false;
+                    btnBuyRosa.className = 'btn btn-secondary btn-skin';
+                }
+            } else {
+                btnBuyRosa.textContent = 'COMPRAR';
+                btnBuyRosa.disabled = false;
+                btnBuyRosa.className = 'btn btn-primary btn-skin';
+            }
+        }
+    }
+
+    // ====== EVENTOS E BOTÕES ======
+
+    // Form Iniciar
     if (startForm) {
-        startForm.addEventListener('submit', (e) => {
+        startForm.onsubmit = (e) => {
             e.preventDefault();
             e.stopPropagation();
 
-            const nameValue = playerInput.value.trim();
+            const nameValue = playerInput ? playerInput.value.trim() : '';
             if (!nameValue) {
-                playerInput.focus();
+                if (playerInput) playerInput.focus();
                 return;
             }
 
             currentPlayer = nameValue;
             localStorage.setItem('garota_jump_player', currentPlayer);
-
             startGame();
-        });
+        };
     }
 
-    if (btnViewRanking) {
-        btnViewRanking.addEventListener('click', (e) => {
+    // Botão Loja
+    if (btnShop) {
+        btnShop.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            
+            showShopModal();
+        };
+    }
+
+    // Botão Fechar Loja
+    if (btnCloseShop) {
+        btnCloseShop.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showStartModal();
+        };
+    }
+
+    // Equipa Garota Clássica
+    if (btnSkinGarota) {
+        btnSkinGarota.onclick = (e) => {
+            e.preventDefault();
+            currentSkin = 'garota';
+            localStorage.setItem('garota_jump_current_skin', 'garota');
+            applySkin('garota');
+            updateShopUI();
+        };
+    }
+
+    // Compra / Equipa Maga Neon
+    if (btnBuyRosa) {
+        btnBuyRosa.onclick = (e) => {
+            e.preventDefault();
+            if (!unlockedSkins.includes('rosa')) {
+                if (totalCoins >= 10) {
+                    totalCoins -= 10;
+                    localStorage.setItem('garota_jump_coins', totalCoins);
+                    unlockedSkins.push('rosa');
+                    localStorage.setItem('garota_jump_skins', JSON.stringify(unlockedSkins));
+                    currentSkin = 'rosa';
+                    localStorage.setItem('garota_jump_current_skin', 'rosa');
+                    applySkin('rosa');
+                    updateShopUI();
+                } else {
+                    alert('Moedas insuficientes! Você precisa de 10 moedas.');
+                }
+            } else {
+                currentSkin = 'rosa';
+                localStorage.setItem('garota_jump_current_skin', 'rosa');
+                applySkin('rosa');
+                updateShopUI();
+            }
+        };
+    }
+
+    // Ver Ranking
+    if (btnViewRanking) {
+        btnViewRanking.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             fetchRanking();
             if (finalScoreValue) finalScoreValue.textContent = '---';
             if (finalCoinsValue) finalCoinsValue.textContent = '---';
             if (saveStatusMsg) saveStatusMsg.textContent = '';
-            
-            if (startModal) {
-                startModal.classList.remove('active');
-                startModal.style.display = 'none';
-            }
-            if (gameoverModal) {
-                gameoverModal.style.display = 'flex';
-                gameoverModal.classList.add('active');
-            }
-        });
+            showGameOverModal();
+        };
     }
 
+    // Jogar Novamente
     if (btnRestart) {
-        btnRestart.addEventListener('click', (e) => {
+        btnRestart.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-
             if (!currentPlayer) {
-                if (startModal) {
-                    startModal.style.display = 'flex';
-                    startModal.classList.add('active');
-                }
+                showStartModal();
                 if (playerInput) playerInput.focus();
             } else {
                 startGame();
             }
-        });
+        };
     }
 
+    // Trocar Jogador
     if (btnChangePlayer) {
-        btnChangePlayer.addEventListener('click', (e) => {
+        btnChangePlayer.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-
             isPlaying = false;
             if (rafId) cancelAnimationFrame(rafId);
             resetGame();
-
-            if (gameoverModal) {
-                gameoverModal.classList.remove('active');
-                gameoverModal.style.display = 'none';
-            }
-
-            if (startModal) {
-                startModal.style.display = 'flex';
-                startModal.classList.add('active');
-            }
-            if (playerInput) {
-                playerInput.value = '';
-                playerInput.focus();
-            }
-        });
+            showStartModal();
+            if (playerInput) { playerInput.value = ''; playerInput.focus(); }
+        };
     }
 
+    // Controles de Pulo
     document.addEventListener('keydown', (e) => {
         if (e.code === 'Space' || e.key === ' ' || e.code === 'ArrowUp') {
             if (isPlaying) {
@@ -441,12 +600,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    gameBoard.addEventListener('pointerdown', () => {
-        if (isPlaying) {
-            jump();
-        }
-    });
+    if (gameBoard) {
+        gameBoard.addEventListener('pointerdown', () => {
+            if (isPlaying) jump();
+        });
+    }
 
-    if (startModal) startModal.addEventListener('pointerdown', (e) => e.stopPropagation());
-    if (gameoverModal) gameoverModal.addEventListener('pointerdown', (e) => e.stopPropagation());
+    // Impede propagação nos modais
+    if (startModal) startModal.onpointerdown = (e) => e.stopPropagation();
+    if (gameoverModal) gameoverModal.onpointerdown = (e) => e.stopPropagation();
+    if (shopModal) shopModal.onpointerdown = (e) => e.stopPropagation();
+
+    // Aplica a skin salva ao iniciar
+    applySkin(currentSkin);
 });

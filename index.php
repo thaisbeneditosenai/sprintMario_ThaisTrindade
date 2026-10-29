@@ -81,6 +81,7 @@ try {
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-primary" id="btn-start">INICIAR JOGO</button>
                     <button type="button" class="btn btn-secondary" id="btn-view-ranking">VER RANKING</button>
+                    <button type="button" class="btn btn-secondary" id="btn-shop">🛍️ LOJA DE SKINS</button>
                 </div>
             </form>
 
@@ -90,7 +91,42 @@ try {
         </div>
     </div>
 
-    <!-- 2. TELA DE GAME OVER & RANKING -->
+    <!-- 2. TELA DA LOJA DE SKINS (AGORA FORA DO START-MODAL) -->
+    <div class="modal-overlay" id="shop-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="game-title">🛍️ LOJA MÁGICA</h2>
+                <p class="game-subtitle">Sua carteira: 🪙 <span id="shop-coins-display">0</span> moedas</p>
+            </div>
+
+            <div class="skins-container">
+                <!-- Skin Padrão -->
+                <div class="skin-card active" id="skin-card-garota">
+                    <img src="assets/garota.gif" alt="Garota Padrão" class="skin-preview">
+                    <div class="skin-info">
+                        <span class="skin-name">Garota Clássica</span>
+                        <button class="btn btn-skin" id="btn-skin-garota" disabled>EQUIPADO</button>
+                    </div>
+                </div>
+
+                <!-- Skin Maga Rosa -->
+                <div class="skin-card" id="skin-card-rosa">
+                    <img src="assets/garota.gif" class="skin-preview skin-filter-rosa" alt="Garota Rosa">
+                    <div class="skin-info">
+                        <span class="skin-name">Maga Neon</span>
+                        <span class="skin-price">🪙 10 Moedas</span>
+                        <button class="btn btn-primary btn-skin" id="btn-buy-rosa">COMPRAR</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" id="btn-close-shop">VOLTAR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. TELA DE GAME OVER & RANKING -->
     <div class="modal-overlay" id="gameover-modal">
         <div class="modal-card gameover-card">
             <div class="modal-header">
