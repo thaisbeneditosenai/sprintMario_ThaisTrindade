@@ -23,7 +23,7 @@ try {
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mario Jump - Jogo com Ranking MySQL</title>
+    <title>Garota Jump - Jogo com Ranking MySQL</title>
     
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -60,7 +60,7 @@ try {
     <div class="modal-overlay active" id="start-modal">
         <div class="modal-card">
             <div class="modal-header">
-                <h1 class="game-title">MARIO JUMP</h1>
+                <h1 class="game-title">GAROTA JUMP</h1>
                 <p class="game-subtitle">Corra, desvie dos canos e dispute o topo do ranking!</p>
             </div>
 
