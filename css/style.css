@@ -59,11 +59,7 @@ body {
     text-shadow: 2px 2px #d6004b;
 }
 
-/* ====== TABULEIRO COM IMAGEM DE FUNDO E OVERLAY DE COR ====== */
-
-/* ====== TABULEIRO COM IMAGEM DE FUNDO E OVERLAY DE COR ====== */
-
-/* ====== TABULEIRO COM IMAGEM DE FUNDO + OVERLAY COLORIDO DE SUCESSO ====== */
+/* ====== TABULEIRO COM IMAGEM DE FUNDO + OVERLAY TRANSPARENTE ====== */
 
 .game-board {
     width: 100%;
@@ -77,9 +73,9 @@ body {
     overflow: hidden;
     cursor: pointer;
     
-    /* Aplica a camada de cor (RGBA) diretamente SOBRE a imagem de fundo */
-    background-image: linear-gradient(rgba(255, 26, 102, 0.45), rgba(255, 26, 102, 0.45)), 
-                      url('../assets/cenario-bg.jpg');
+    /* Fase 1: Rosa Magenta Semitransparente (0.25 = 25% de cor sobre a imagem cenario-bg.png) */
+    background-image: linear-gradient(rgba(255, 26, 102, 0.25), rgba(255, 26, 102, 0.25)), 
+                      url('../assets/cenario-bg.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -88,104 +84,27 @@ body {
     transition: background-image 1.5s ease;
 }
 
-/* Garante que os elementos do jogo fiquem na frente da imagem */
+/* Garante que os elementos do jogo fiquem por cima da imagem de fundo */
 .game-board > * {
     position: absolute;
     z-index: 2;
-}
-
-/* Remova a regra ::before antiga se ela ainda estiver no seu CSS */
-.game-board::before {
-    display: none !important;
 }
 
 /* ====== OVERLAYS COLORIDOS DAS FASES DO JOGO ====== */
 
-/* Fase 2: Filtro Roxo Violeta (100 a 249 pts) */
+/* Fase 2: Filtro Roxo Violeta Transparente (100 a 249 pts) */
 .game-board.fase-roxo {
-    background-image: linear-gradient(rgba(106, 13, 173, 0.55), rgba(106, 13, 173, 0.55)), 
-                      url('../assets/cenario-bg.jpg') !important;
+    background-image: linear-gradient(rgba(106, 13, 173, 0.30), rgba(106, 13, 173, 0.30)), 
+                      url('../assets/cenario-bg.png') !important;
 }
 
-/* Fase 3: Filtro Carmesim Sombrio (250+ pts) */
+/* Fase 3: Filtro Carmesim Sombrio Transparente (250+ pts) */
 .game-board.fase-carmesim {
-    background-image: linear-gradient(rgba(179, 0, 59, 0.65), rgba(179, 0, 59, 0.65)), 
-                      url('../assets/cenario-bg.jpg') !important;
+    background-image: linear-gradient(rgba(179, 0, 59, 0.35), rgba(179, 0, 59, 0.35)), 
+                      url('../assets/cenario-bg.png') !important;
 }
 
-/* Camada da Imagem de Fundo (Fica atrás da cor do tabuleiro) */
-.game-board::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    
-    /* 2. Caminho da imagem (Verifique se o nome exato da imagem é .png ou .jpg) */
-    background-image: url('../assets/cenario-bg.jpg'); 
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    
-    /* Posição no fundo e nitidez total da imagem */
-    z-index: 0;
-    opacity: 1; 
-}
-
-/* Garante que os elementos do jogo fiquem na frente da imagem e da cor */
-.game-board > * {
-    position: relative;
-    z-index: 2;
-}
-
-/* ====== FASES COM FILTROS SUAVES (30% A 40% DE OPACIDADE) ====== */
-
-/* Fase 1: Filtro Rosa Magenta Padrão */
-.game-board {
-    background-color: rgba(255, 26, 102, 0.35) !important;
-}
-
-/* Fase 2: Filtro Roxo Violeta */
-.game-board.fase-roxo {
-    background-color: rgba(106, 13, 173, 0.45) !important;
-}
-
-/* Fase 3: Filtro Carmesim Sombrio */
-.game-board.fase-carmesim {
-    background-color: rgba(179, 0, 59, 0.50) !important;
-}
-
-/* Garante que os elementos do jogo (mario, canos, nuvens, HUD) fiquem sobre a imagem e o overlay */
-.game-board > * {
-    position: absolute;
-    z-index: 2;
-}
-
-/* ====== FASES E FILTROS COLORIDOS DINÂMICOS ====== */
-
-/* Fase 1: Filtro Rosa Magenta Padrão (0 a 99 pts) */
-.game-board {
-    background-color: rgba(255, 26, 102, 0.45); /* 45% de opacidade */
-}
-
-/* Fase 2: Filtro Roxo Violeta (100 a 249 pts) */
-.game-board.fase-roxo {
-    background-color: rgba(106, 13, 173, 0.60); /* 60% de opacidade */
-}
-
-/* Fase 3: Filtro Carmesim Sombrio (250+ pts) */
-.game-board.fase-carmesim {
-    background-color: rgba(179, 0, 59, 0.70); /* 70% de opacidade */
-}
-
-.game-board.fase-roxo {
-    background: linear-gradient(#d87093, #4b0082) !important;
-}
-
-.game-board.fase-carmesim {
-    background: linear-gradient(#ff1a66, #330012) !important;
-}
+/* ====== OBJETOS DO JOGO ====== */
 
 .pipe {
     position: absolute;
@@ -236,10 +155,13 @@ body {
     transform: translateX(-50%);
     font-family: 'Press Start 2P', cursive;
     font-size: 10px;
-    color: #4a001a;
+    color: #ffffff;
+    text-shadow: 1px 1px 2px #000;
     pointer-events: none;
     transition: opacity 0.3s;
 }
+
+/* ====== MODAIS E INTERFACE ====== */
 
 .modal-overlay {
     position: fixed;
@@ -621,13 +543,12 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    opacity: 0.55; /* Transparência sutil de marca d'água */
-    pointer-events: none; /* Não interfere nos cliques do jogo */
+    opacity: 0.55;
+    pointer-events: none;
     z-index: 20;
     transition: opacity 0.3s ease;
 }
 
-/* Efeito ao passar o mouse por cima (opcional, fica levemente mais visível) */
 .game-board:hover .watermark-container {
     opacity: 0.8;
 }
