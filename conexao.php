@@ -16,11 +16,9 @@
             ]
         );
 
-        // Comando SQL corrigido (sem o 'drop-down')
         $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbname`");
         $pdo->exec("USE `$dbname`");
 
-        // Criação da tabela incluindo as colunas moedas e skins_compradas
         $pdo->exec(
             "CREATE TABLE IF NOT EXISTS `ranking`(
             `id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -31,7 +29,6 @@
             `data_registro` TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
         );
 
-        // Se a tabela já existia sem as novas colunas, adiciona de forma segura
         $colMoedas = $pdo->query("SHOW COLUMNS FROM `ranking` LIKE 'moedas'")->fetch();
         if (!$colMoedas) {
             $pdo->exec("ALTER TABLE `ranking` ADD COLUMN `moedas` INT NOT NULL DEFAULT 0 AFTER `pontos`");

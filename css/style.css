@@ -1,4 +1,3 @@
-/* Reset e Estilos Globais */
 * {
     margin: 0;
     padding: 0;
@@ -6,7 +5,7 @@
 }
 
 body {
-    background: #1a0813; /* Fundo escuro rosado */
+    background: #1a0813;
     font-family: 'Poppins', 'Segoe UI', Tahoma, sans-serif;
     color: #ffffff;
     min-height: 100vh;
@@ -27,7 +26,6 @@ body {
     align-items: center;
 }
 
-/* Barra Superior (HUD) Mágica */
 .hud-bar {
     width: 100%;
     background: linear-gradient(180deg, #420d29 0%, #260517 100%);
@@ -50,7 +48,7 @@ body {
 .label {
     font-family: 'Press Start 2P', cursive;
     font-size: 11px;
-    color: #ff4d8d; /* Rosa Vibrante */
+    color: #ff4d8d;
     letter-spacing: 1px;
 }
 
@@ -61,23 +59,134 @@ body {
     text-shadow: 2px 2px #d6004b;
 }
 
-/* Tabuleiro do Jogo Mágico */
+/* ====== TABULEIRO COM IMAGEM DE FUNDO E OVERLAY DE COR ====== */
+
+/* ====== TABULEIRO COM IMAGEM DE FUNDO E OVERLAY DE COR ====== */
+
+/* ====== TABULEIRO COM IMAGEM DE FUNDO + OVERLAY COLORIDO DE SUCESSO ====== */
+
 .game-board {
     width: 100%;
     height: 480px;
     border-left: 4px solid #5a1138;
     border-right: 4px solid #5a1138;
-    border-bottom: 20px solid #d6004b; /* Chão Rosa/Vermelho encorpado */
+    border-bottom: 20px solid #d6004b;
     border-radius: 0 0 12px 12px;
     margin: 0 auto;
     position: relative;
     overflow: hidden;
-    background: linear-gradient(#ffb3d9, #ff3377); /* Céu do Mundo Mágico */
-    box-shadow: 0 10px 30px rgba(214, 0, 75, 0.4);
     cursor: pointer;
+    
+    /* Aplica a camada de cor (RGBA) diretamente SOBRE a imagem de fundo */
+    background-image: linear-gradient(rgba(255, 26, 102, 0.45), rgba(255, 26, 102, 0.45)), 
+                      url('../assets/cenario-bg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    /* Transição suave de cor ao mudar de fase */
+    transition: background-image 1.5s ease;
 }
 
-/* Elementos do Jogo */
+/* Garante que os elementos do jogo fiquem na frente da imagem */
+.game-board > * {
+    position: absolute;
+    z-index: 2;
+}
+
+/* Remova a regra ::before antiga se ela ainda estiver no seu CSS */
+.game-board::before {
+    display: none !important;
+}
+
+/* ====== OVERLAYS COLORIDOS DAS FASES DO JOGO ====== */
+
+/* Fase 2: Filtro Roxo Violeta (100 a 249 pts) */
+.game-board.fase-roxo {
+    background-image: linear-gradient(rgba(106, 13, 173, 0.55), rgba(106, 13, 173, 0.55)), 
+                      url('../assets/cenario-bg.jpg') !important;
+}
+
+/* Fase 3: Filtro Carmesim Sombrio (250+ pts) */
+.game-board.fase-carmesim {
+    background-image: linear-gradient(rgba(179, 0, 59, 0.65), rgba(179, 0, 59, 0.65)), 
+                      url('../assets/cenario-bg.jpg') !important;
+}
+
+/* Camada da Imagem de Fundo (Fica atrás da cor do tabuleiro) */
+.game-board::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    
+    /* 2. Caminho da imagem (Verifique se o nome exato da imagem é .png ou .jpg) */
+    background-image: url('../assets/cenario-bg.jpg'); 
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    
+    /* Posição no fundo e nitidez total da imagem */
+    z-index: 0;
+    opacity: 1; 
+}
+
+/* Garante que os elementos do jogo fiquem na frente da imagem e da cor */
+.game-board > * {
+    position: relative;
+    z-index: 2;
+}
+
+/* ====== FASES COM FILTROS SUAVES (30% A 40% DE OPACIDADE) ====== */
+
+/* Fase 1: Filtro Rosa Magenta Padrão */
+.game-board {
+    background-color: rgba(255, 26, 102, 0.35) !important;
+}
+
+/* Fase 2: Filtro Roxo Violeta */
+.game-board.fase-roxo {
+    background-color: rgba(106, 13, 173, 0.45) !important;
+}
+
+/* Fase 3: Filtro Carmesim Sombrio */
+.game-board.fase-carmesim {
+    background-color: rgba(179, 0, 59, 0.50) !important;
+}
+
+/* Garante que os elementos do jogo (mario, canos, nuvens, HUD) fiquem sobre a imagem e o overlay */
+.game-board > * {
+    position: absolute;
+    z-index: 2;
+}
+
+/* ====== FASES E FILTROS COLORIDOS DINÂMICOS ====== */
+
+/* Fase 1: Filtro Rosa Magenta Padrão (0 a 99 pts) */
+.game-board {
+    background-color: rgba(255, 26, 102, 0.45); /* 45% de opacidade */
+}
+
+/* Fase 2: Filtro Roxo Violeta (100 a 249 pts) */
+.game-board.fase-roxo {
+    background-color: rgba(106, 13, 173, 0.60); /* 60% de opacidade */
+}
+
+/* Fase 3: Filtro Carmesim Sombrio (250+ pts) */
+.game-board.fase-carmesim {
+    background-color: rgba(179, 0, 59, 0.70); /* 70% de opacidade */
+}
+
+.game-board.fase-roxo {
+    background: linear-gradient(#d87093, #4b0082) !important;
+}
+
+.game-board.fase-carmesim {
+    background: linear-gradient(#ff1a66, #330012) !important;
+}
+
 .pipe {
     position: absolute;
     bottom: 0;
@@ -120,7 +229,6 @@ body {
     will-change: transform;
 }
 
-/* Dica de pulo na tela */
 .jump-tip {
     position: absolute;
     bottom: 40px;
@@ -133,7 +241,6 @@ body {
     transition: opacity 0.3s;
 }
 
-/* Modais / Telas Sobrepostas */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -183,7 +290,6 @@ body {
     color: #ffb3d1;
 }
 
-/* Formulário de Início */
 .start-form {
     display: flex;
     flex-direction: column;
@@ -222,7 +328,6 @@ body {
     box-shadow: 0 0 12px rgba(255, 26, 102, 0.5);
 }
 
-/* Botões */
 .modal-actions {
     display: flex;
     flex-direction: column;
@@ -254,23 +359,12 @@ body {
     box-shadow: 0 6px 15px rgba(255, 0, 85, 0.5);
 }
 
-.btn-primary:active {
-    transform: translateY(2px);
-    border-bottom: 2px solid #660022;
-}
-
 .btn-secondary {
     background: #4a0d30;
     color: #ffccd9;
     border-bottom: 4px solid #260517;
 }
 
-.btn-secondary:hover {
-    background: #661242;
-    color: #ffffff;
-}
-
-/* Status do Laragon */
 .server-status {
     margin-top: 20px;
     font-size: 11px;
@@ -285,21 +379,10 @@ body {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #ff6699;
-    display: inline-block;
-}
-
-.status-dot.online {
     background: #ff1a66;
     box-shadow: 0 0 8px #ff1a66;
 }
 
-.status-dot.offline {
-    background: #990033;
-    box-shadow: 0 0 8px #990033;
-}
-
-/* Tela de Game Over & Ranking */
 .gameover-card {
     max-width: 540px;
 }
@@ -333,7 +416,6 @@ body {
     text-shadow: 2px 2px #330012;
 }
 
-/* Tabela de Ranking */
 .ranking-container {
     margin-bottom: 20px;
 }
@@ -343,7 +425,6 @@ body {
     font-size: 12px;
     color: #ff6699;
     margin-bottom: 12px;
-    letter-spacing: 0.5px;
 }
 
 .table-wrapper {
@@ -352,14 +433,6 @@ body {
     border-radius: 8px;
     background: #14030d;
     border: 1px solid #4a0d30;
-}
-
-.table-wrapper::-webkit-scrollbar {
-    width: 6px;
-}
-.table-wrapper::-webkit-scrollbar-thumb {
-    background: #ff0055;
-    border-radius: 4px;
 }
 
 .ranking-table {
@@ -377,7 +450,6 @@ body {
     padding: 10px 14px;
     position: sticky;
     top: 0;
-    z-index: 2;
 }
 
 .ranking-table td {
@@ -385,76 +457,7 @@ body {
     border-bottom: 1px solid #28051a;
 }
 
-.ranking-table tr:nth-child(even) {
-    background: rgba(255, 102, 153, 0.05);
-}
-
-.ranking-table tr.highlight-current {
-    background: rgba(255, 0, 85, 0.25) !important;
-    font-weight: 700;
-    color: #ff99c2;
-}
-
-.ranking-pos {
-    font-family: 'Press Start 2P', cursive;
-    font-size: 10px;
-    width: 40px;
-}
-
-.loading-cell {
-    text-align: center;
-    padding: 20px !important;
-    color: #ff99c2;
-}
-
-.save-status {
-    margin-top: 8px;
-    font-size: 11px;
-    color: #ff6699;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.96);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* Responsividade */
-@media (max-width: 600px) {
-    .game-board {
-        height: 380px;
-    }
-    .mario {
-        width: 50px;
-        left: 56px;
-    }
-    .pipe {
-        width: 60px;
-    }
-    .hud-bar {
-        padding: 10px 14px;
-    }
-    .label {
-        font-size: 9px;
-    }
-    .value {
-        font-size: 11px;
-    }
-    .game-title {
-        font-size: 16px;
-    }
-    .btn {
-        font-size: 10px;
-        padding: 12px 14px;
-    }
-}
-
-/* ====== ESTILOS DA LOJA DE SKINS ====== */
+/* LOJA */
 .skins-container {
     display: flex;
     flex-direction: column;
@@ -462,7 +465,6 @@ body {
     max-height: 250px;
     overflow-y: auto;
     padding: 10px;
-    margin-bottom: 15px;
 }
 
 .skin-card {
@@ -473,7 +475,6 @@ body {
     border: 2px solid #4a0d30;
     border-radius: 12px;
     padding: 12px 16px;
-    transition: all 0.25s ease;
 }
 
 .skin-card.active {
@@ -487,7 +488,6 @@ body {
     object-fit: contain;
 }
 
-/* Efeito visual da Skin Maga Neon */
 .skin-filter-rosa {
     filter: hue-rotate(90deg) drop-shadow(0 0 8px #ff00ff) !important;
 }
@@ -513,4 +513,136 @@ body {
 .btn-skin {
     font-size: 9px !important;
     padding: 8px 12px !important;
+}
+
+/* BRUXO E CARTA */
+.wizard {
+    position: absolute;
+    top: 20px;          
+    right: -250px;      
+    width: 170px;       
+    height: auto;
+    z-index: 15;
+    pointer-events: none;
+    transition: right 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    filter: drop-shadow(0 0 18px #aa00ff) drop-shadow(0 0 35px #ff00ff);
+}
+
+.wizard.active {
+    right: 50px;        
+}
+
+.wizard-card {
+    border: 4px solid #aa00ff !important;
+    box-shadow: 0 0 35px rgba(170, 0, 255, 0.7), 0 15px 40px rgba(0, 0, 0, 0.9) !important;
+    background: #1d0322 !important;
+}
+
+.wizard-card-preview {
+    width: 150px;
+    height: auto;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 0 8px #ff00ff);
+}
+
+.wizard-card-type {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+.wizard-card-type.sorte {
+    color: #10b981;
+    text-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+
+.wizard-card-type.reves {
+    color: #ef4444;
+    text-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+}
+
+.wizard-card-body {
+    background: #0f0113;
+    border: 2px dashed #aa00ff;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.wizard-card-description {
+    font-size: 13px;
+    color: #f3e8ff;
+    line-height: 1.5;
+}
+
+.countdown-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 80px;
+    color: #ff00aa;
+    text-shadow: 4px 4px 0px #000, 0 0 20px #ff00ff;
+    z-index: 50;
+    display: none;
+    pointer-events: none;
+    animation: pulseCount 0.9s infinite;
+}
+
+.game-board.screen-shake {
+    animation: shake 0.3s infinite;
+}
+
+@keyframes shake {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-4px, 3px); }
+    50% { transform: translate(4px, -3px); }
+    75% { transform: translate(-3px, -2px); }
+    100% { transform: translate(0, 0); }
+}
+
+@keyframes pulseCount {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.8; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* ====== MARCA D'ÁGUA ESTILO TIKTOK ====== */
+.watermark-container {
+    position: absolute;
+    bottom: 12px;
+    right: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0.55; /* Transparência sutil de marca d'água */
+    pointer-events: none; /* Não interfere nos cliques do jogo */
+    z-index: 20;
+    transition: opacity 0.3s ease;
+}
+
+/* Efeito ao passar o mouse por cima (opcional, fica levemente mais visível) */
+.game-board:hover .watermark-container {
+    opacity: 0.8;
+}
+
+.watermark-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 4px rgba(255, 0, 128, 0.6));
+}
+
+.watermark-text {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 8px;
+    color: #ffffff;
+    letter-spacing: 1px;
+    text-shadow: 1px 1px 3px #000000, 0 0 6px rgba(255, 26, 102, 0.8);
 }

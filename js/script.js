@@ -1,8 +1,8 @@
 /**
- * Garota Jump - Lógica Completa (Física, Sons 8-Bit, Banco de Dados & Loja de Skins)
+ * Garota Jump - Lógica Completa + Bruxo + Sons 8-bit + Loja de Skins
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // Configurações e Física
+    // Configurações e Física Base
     const PIPE_SPEED_BASE = 450;   
     const PIPE_SPEED_MAX = 900;    
     const PIPE_SPEED_GAIN = 2;   
@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const GRAVITY = 1600;        
     const JUMP_IMPULSE = -750; 
 
-    // Elementos do DOM
+    // Elementos DOM
     const mario = document.querySelector('.mario');
     const pipe = document.querySelector('.pipe');
     const coin = document.querySelector('.coin');
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnRestart = document.getElementById('btn-restart');
     const btnChangePlayer = document.getElementById('btn-change-player');
 
-    // Elementos da Loja
+    // Loja
     const shopModal = document.getElementById('shop-modal');
     const btnShop = document.getElementById('btn-shop');
     const btnCloseShop = document.getElementById('btn-close-shop');
@@ -43,16 +43,63 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnBuyRosa = document.getElementById('btn-buy-rosa');
     const btnSkinGarota = document.getElementById('btn-skin-garota');
 
+    // Bruxo e Feitiços
+    const wizardElement = document.getElementById('wizard-element');
+    const wizardModal = document.getElementById('wizard-modal');
+    const wizardCardType = document.getElementById('wizard-card-type');
+    const wizardCardDesc = document.getElementById('wizard-card-desc');
+    const btnWizardConfirm = document.getElementById('btn-wizard-confirm');
+    const countdownOverlay = document.getElementById('countdown-overlay');
+
     // Estados do Jogo
     let currentPlayer = '';
     let score = 0;
     let coins = 0;
     let isPlaying = false;
+    let isPausedForWizard = false;
     let rafId = null;
+    let wizardTimer = null;
     let lastTime = 0;
     let scoreAccumulator = 0;
 
-    // Carteira e Skins
+    // Efeitos Ativos acumulados do Bruxo
+    let activeEffects = {
+        speedMultiplier: 1.0,
+        gravityMultiplier: 1.0,
+        screenShake: false
+    };
+
+    const WIZARD_EFFECTS = [
+        {
+            type: 'sorte',
+            title: '✨ FEITIÇO DE LEVEZA!',
+            desc: 'Sorte! A gravidade diminuiu e a Garota pula mais flutuante!',
+            apply: () => { activeEffects.gravityMultiplier = 0.75; }
+        },
+        {
+            type: 'sorte',
+            title: '⚡ DESACELERAÇÃO TEMPORAL!',
+            desc: 'Sorte! Os canos ficaram mais lentos!',
+            apply: () => { activeEffects.speedMultiplier = 0.75; }
+        },
+        {
+            type: 'reves',
+            title: '🌪️ TERREMOTO MÁGICO!',
+            desc: 'Revés! A visão está trêmula pela fúria do Bruxo!',
+            apply: () => { 
+                activeEffects.screenShake = true;
+                if (gameBoard) gameBoard.classList.add('screen-shake');
+            }
+        },
+        {
+            type: 'reves',
+            title: '🚀 SUPER VELOCIDADE!',
+            desc: 'Revés! Os obstáculos ganharam velocidade extrema!',
+            apply: () => { activeEffects.speedMultiplier = 1.35; }
+        }
+    ];
+
+    // Carteira
     let totalCoins = parseInt(localStorage.getItem('garota_jump_coins') || '0', 10);
     let unlockedSkins = JSON.parse(localStorage.getItem('garota_jump_skins') || '["garota"]');
     let currentSkin = localStorage.getItem('garota_jump_current_skin') || 'garota';
@@ -70,7 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let marioVelocityY = 0;
     let isJumping = false;
 
-    // Pre-load
     new Image().src = 'assets/game-over.png';
 
     const savedName = localStorage.getItem('garota_jump_player');
@@ -80,16 +126,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameBoard) boardWidth = gameBoard.clientWidth;
     });
 
-    // ====== SINTETIZADOR DE ÁUDIO 8-BIT ======
+    // Áudio 8-Bit
     let audioCtx = null;
-
     function initAudio() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
     function playTone(freq, type, duration) {
@@ -132,11 +173,12 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => playTone(150, 'sawtooth', 0.3), 350);
     }
 
-    // ====== FUNÇÕES AUXILIARES ======
+    // Auxiliares
     function hideAllModals() {
         if (startModal) { startModal.classList.remove('active'); startModal.style.display = 'none'; }
         if (gameoverModal) { gameoverModal.classList.remove('active'); gameoverModal.style.display = 'none'; }
         if (shopModal) { shopModal.classList.remove('active'); shopModal.style.display = 'none'; }
+        if (wizardModal) { wizardModal.classList.remove('active'); wizardModal.style.display = 'none'; }
     }
 
     function showStartModal() {
@@ -167,7 +209,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function clearWizardEffects() {
+        if (wizardTimer) clearTimeout(wizardTimer);
+        isPausedForWizard = false;
+        activeEffects = {
+            speedMultiplier: 1.0,
+            gravityMultiplier: 1.0,
+            screenShake: false
+        };
+        if (gameBoard) {
+            gameBoard.classList.remove('screen-shake', 'fase-roxo', 'fase-carmesim');
+        }
+        if (wizardElement) wizardElement.classList.remove('active');
+        if (countdownOverlay) countdownOverlay.style.display = 'none';
+    }
+
     function resetGame() {
+
+        if (gameBoard) {
+        gameBoard.classList.remove('fase-roxo', 'fase-carmesim');
+    }
+
         boardWidth = gameBoard ? gameBoard.clientWidth : 800;
         pipeX = boardWidth + 200;
         cloudX = boardWidth;
@@ -176,6 +238,8 @@ document.addEventListener('DOMContentLoaded', () => {
         marioY = 0;
         marioVelocityY = 0;
         isJumping = false;
+
+        clearWizardEffects();
 
         setTransform(pipe, pipeX, 0);
         setTransform(clouds, cloudX, 0);
@@ -202,7 +266,82 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ====== LOOP E LÓGICA DO JOGO ======
+    // Mecânica do Bruxo
+    function scheduleWizard() {
+        if (wizardTimer) clearTimeout(wizardTimer);
+        if (!isPlaying) return;
+
+        const randomTime = Math.floor(Math.random() * 8000) + 10000;
+        wizardTimer = setTimeout(() => {
+            if (isPlaying && !isPausedForWizard) {
+                triggerWizardEvent();
+            }
+        }, randomTime);
+    }
+
+    function triggerWizardEvent() {
+        isPausedForWizard = true;
+        playTone(523.25, 'sawtooth', 0.3);
+
+        if (wizardElement) wizardElement.classList.add('active');
+
+        setTimeout(() => {
+            const effect = WIZARD_EFFECTS[Math.floor(Math.random() * WIZARD_EFFECTS.length)];
+            effect.apply();
+
+            if (wizardCardType) {
+                wizardCardType.textContent = effect.title;
+                wizardCardType.className = `wizard-card-type ${effect.type}`;
+            }
+            if (wizardCardDesc) wizardCardDesc.textContent = effect.desc;
+
+            if (wizardElement) wizardElement.classList.remove('active');
+            
+            hideAllModals();
+            if (wizardModal) {
+                wizardModal.style.display = 'flex';
+                wizardModal.classList.add('active');
+            }
+        }, 900);
+    }
+
+    if (btnWizardConfirm) {
+        btnWizardConfirm.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (wizardModal) {
+                wizardModal.classList.remove('active');
+                wizardModal.style.display = 'none';
+            }
+
+            startCountdownResume();
+        };
+    }
+
+    function startCountdownResume() {
+        let count = 3;
+        if (countdownOverlay) {
+            countdownOverlay.textContent = count;
+            countdownOverlay.style.display = 'block';
+        }
+
+        const countInterval = setInterval(() => {
+            count--;
+            if (count > 0) {
+                if (countdownOverlay) countdownOverlay.textContent = count;
+            } else {
+                clearInterval(countInterval);
+                if (countdownOverlay) countdownOverlay.style.display = 'none';
+                
+                isPausedForWizard = false;
+                lastTime = performance.now();
+                scheduleWizard();
+            }
+        }, 1000);
+    }
+
+    // Loop
     function startGame() {
         if (rafId) {
             cancelAnimationFrame(rafId);
@@ -216,10 +355,13 @@ document.addEventListener('DOMContentLoaded', () => {
         coins = 0;
         scoreAccumulator = 0;
         isPlaying = true;
+        isPausedForWizard = false;
 
         if (coinsDisplay) coinsDisplay.textContent = '0';
         if (scoreDisplay) scoreDisplay.textContent = '0';
         if (hudPlayerName) hudPlayerName.textContent = currentPlayer || 'Jogador';
+
+        scheduleWizard();
 
         lastTime = performance.now();
         rafId = requestAnimationFrame(loop);
@@ -227,6 +369,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function loop(now) {
         if (!isPlaying) return;
+        if (isPausedForWizard) {
+            rafId = requestAnimationFrame(loop);
+            return;
+        }
 
         if (!lastTime) lastTime = now;
         let dt = (now - lastTime) / 1000;
@@ -242,7 +388,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (scoreDisplay) scoreDisplay.textContent = score;
         }
 
-        const currentSpeed = Math.min(PIPE_SPEED_MAX, PIPE_SPEED_BASE + score * PIPE_SPEED_GAIN);
+        // Fases por Cor
+        if (score >= 250) {
+            gameBoard.classList.add('fase-carmesim');
+            gameBoard.classList.remove('fase-roxo');
+        } else if (score >= 100) {
+            gameBoard.classList.add('fase-roxo');
+        }
+
+        const currentSpeed = Math.min(PIPE_SPEED_MAX, PIPE_SPEED_BASE + score * PIPE_SPEED_GAIN) * activeEffects.speedMultiplier;
 
         // Cano & Nuvens
         pipeX -= currentSpeed * dt;
@@ -260,9 +414,9 @@ document.addEventListener('DOMContentLoaded', () => {
             else setTransform(coin, coinX, coinY);
         }
 
-        // Pulo
+        // Pulo com efeito do Bruxo
         if (isJumping || marioY > 0) {
-            marioVelocityY += GRAVITY * dt;
+            marioVelocityY += (GRAVITY * activeEffects.gravityMultiplier) * dt;
             marioY -= marioVelocityY * dt;
 
             if (marioY <= 0) {
@@ -295,7 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Coleta Moeda
+        // Coleta
         if (coinVisible && mario && coin) {
             const marioRect = mario.getBoundingClientRect();
             const coinRect = coin.getBoundingClientRect();
@@ -313,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function jump() {
-        if (!isPlaying || isJumping) return;
+        if (!isPlaying || isPausedForWizard || isJumping) return;
         isJumping = true;
         marioVelocityY = JUMP_IMPULSE;
         playSoundJump();
@@ -334,6 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function triggerGameOver() {
         isPlaying = false;
+        isPausedForWizard = false;
         if (rafId) cancelAnimationFrame(rafId);
         playSoundGameOver();
 
@@ -354,7 +509,6 @@ document.addEventListener('DOMContentLoaded', () => {
         saveScore(currentPlayer, score, coins);
     }
 
-    // ====== BANCO DE DADOS & RANKING ======
     function saveScore(playerName, finalScore, finalCoins) {
         fetch('salvar_ranking.php', {
             method: 'POST',
@@ -440,7 +594,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/'/g, '&#039;');
     }
 
-    // ====== LÓGICA DA LOJA DE SKINS ======
     function updateShopUI() {
         if (shopCoinsDisplay) shopCoinsDisplay.textContent = totalCoins;
 
@@ -475,9 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ====== EVENTOS E BOTÕES ======
-
-    // Form Iniciar
+    // Eventos
     if (startForm) {
         startForm.onsubmit = (e) => {
             e.preventDefault();
@@ -495,7 +646,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // Botão Loja
     if (btnShop) {
         btnShop.onclick = (e) => {
             e.preventDefault();
@@ -504,7 +654,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // Botão Fechar Loja
     if (btnCloseShop) {
         btnCloseShop.onclick = (e) => {
             e.preventDefault();
@@ -513,7 +662,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // Equipa Garota Clássica
     if (btnSkinGarota) {
         btnSkinGarota.onclick = (e) => {
             e.preventDefault();
@@ -524,7 +672,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // Compra / Equipa Maga Neon
     if (btnBuyRosa) {
         btnBuyRosa.onclick = (e) => {
             e.preventDefault();
@@ -550,7 +697,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // Ver Ranking
     if (btnViewRanking) {
         btnViewRanking.onclick = (e) => {
             e.preventDefault();
@@ -563,7 +709,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // Jogar Novamente
     if (btnRestart) {
         btnRestart.onclick = (e) => {
             e.preventDefault();
@@ -577,7 +722,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // Trocar Jogador
     if (btnChangePlayer) {
         btnChangePlayer.onclick = (e) => {
             e.preventDefault();
@@ -590,7 +734,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // Controles de Pulo
     document.addEventListener('keydown', (e) => {
         if (e.code === 'Space' || e.key === ' ' || e.code === 'ArrowUp') {
             if (isPlaying) {
@@ -606,11 +749,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Impede propagação nos modais
     if (startModal) startModal.onpointerdown = (e) => e.stopPropagation();
     if (gameoverModal) gameoverModal.onpointerdown = (e) => e.stopPropagation();
     if (shopModal) shopModal.onpointerdown = (e) => e.stopPropagation();
+    if (wizardModal) wizardModal.onpointerdown = (e) => e.stopPropagation();
 
-    // Aplica a skin salva ao iniciar
     applySkin(currentSkin);
 });

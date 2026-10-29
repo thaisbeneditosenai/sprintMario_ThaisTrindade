@@ -1,8 +1,6 @@
 <?php
-
 require_once 'conexao.php';
 
-// Busca inicial do ranking para carregar rápido na primeira abertura
 $rankingInicial = [];
 try {
     $stmt = $pdo->query("
@@ -13,7 +11,6 @@ try {
     ");
     $rankingInicial = $stmt->fetchAll();
 } catch (Exception $e) {
-    // Caso o banco ainda não possua registros
     $rankingInicial = [];
 }
 ?>
@@ -24,7 +21,6 @@ try {
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Garota Jump - Jogo com Ranking MySQL</title>
-    
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -46,22 +42,29 @@ try {
             </div>
         </header>
 
-        
         <main class="game-board" id="game-board">
             <img src="assets/clouds.png" class="clouds" alt="Nuvens">
-            <img src="assets/garota.gif" class="mario" alt="Mario">
+            <img src="assets/garota.gif" class="mario" alt="Garota">
             <img src="assets/pipe.png" class="pipe" alt="Cano">
             <img src="assets/coin.png" class="coin" alt="Moeda">
+            <img src="assets/bruxo.png" class="wizard" id="wizard-element" alt="Bruxo Mágico">
+            <div class="countdown-overlay" id="countdown-overlay">3</div>
             <span class="jump-tip" id="jump-tip">Pressione ESPAÇO ou clique para pular</span>
+
+        <div class="watermark-container">
+            <img src="assets/spark_logo.jpg" alt="Spark Studio" class="watermark-logo">
+            <span class="watermark-text">SPARK STUDIO</span>
+        </div>
+
         </main>
     </div>
 
-    <!-- 1. TELA DE INÍCIO / INSERIR NOME -->
+    <!-- 1. TELA DE INÍCIO -->
     <div class="modal-overlay active" id="start-modal">
         <div class="modal-card">
             <div class="modal-header">
                 <h1 class="game-title">GAROTA JUMP</h1>
-                <p class="game-subtitle">Corra, desvie dos canos e dispute o topo do ranking!</p>
+                <p class="game-subtitle">Corra, desvie dos canos e enfrente os feitiços do Bruxo!</p>
             </div>
 
             <form class="start-form" id="start-form">
@@ -91,7 +94,7 @@ try {
         </div>
     </div>
 
-    <!-- 2. TELA DA LOJA DE SKINS (AGORA FORA DO START-MODAL) -->
+    <!-- 2. TELA DA LOJA DE SKINS -->
     <div class="modal-overlay" id="shop-modal">
         <div class="modal-card">
             <div class="modal-header">
@@ -100,7 +103,6 @@ try {
             </div>
 
             <div class="skins-container">
-                <!-- Skin Padrão -->
                 <div class="skin-card active" id="skin-card-garota">
                     <img src="assets/garota.gif" alt="Garota Padrão" class="skin-preview">
                     <div class="skin-info">
@@ -109,7 +111,6 @@ try {
                     </div>
                 </div>
 
-                <!-- Skin Maga Rosa -->
                 <div class="skin-card" id="skin-card-rosa">
                     <img src="assets/garota.gif" class="skin-preview skin-filter-rosa" alt="Garota Rosa">
                     <div class="skin-info">
@@ -139,7 +140,6 @@ try {
                 </div>
             </div>
 
-            <!-- Tabela com o TOP 10 -->
             <div class="ranking-container">
                 <h3 class="ranking-title">🏆 TOP 10 MELHORES PONTUAÇÕES</h3>
                 <div class="table-wrapper">
@@ -181,7 +181,25 @@ try {
         </div>
     </div>
 
-   
+    <!-- 4. CARTA DE FEITIÇO DO BRUXO -->
+    <div class="modal-overlay" id="wizard-modal">
+        <div class="modal-card wizard-card">
+            <div class="modal-header">
+                <img src="assets/bruxo.gif" class="wizard-card-preview" alt="Bruxo" onerror="this.style.display='none'">
+                <h2 class="game-title" id="wizard-card-title">SORTE OU REVÉS</h2>
+                <p class="wizard-card-type" id="wizard-card-type">O BRUXO LANÇOU UM FEITIÇO!</p>
+            </div>
+
+            <div class="wizard-card-body">
+                <p class="wizard-card-description" id="wizard-card-desc">Carregando feitiço...</p>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button type="button" class="btn btn-primary" id="btn-wizard-confirm">ENTENDIDO</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/script.js" defer></script>
 </body>
 </html>
